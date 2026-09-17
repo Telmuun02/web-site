@@ -52,4 +52,23 @@ return [
         'default_cover' => env('CLOUDINARY_DEFAULT_COVER', 'folio/book-cover-default'),
     ],
 
+    'linkedin-openid' => [
+        'client_id' => env('LINKEDIN_CLIENT_ID'),
+        'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
+        'redirect' => env('LINKEDIN_REDIRECT_URI'),
+    ],    
+    
+    /*
+     | Anthropic (Claude) — чат туслах.
+     |
+     | api_key нь Console-оос (console.anthropic.com) авсан нууц түлхүүр —
+     | зөвхөн server талд, хэзээ ч frontend руу явахгүй.
+     | model-ийг env-д гаргасан нь код өөрчлөхгүйгээр солих боломж.
+     */
+    'anthropic' => [
+        'api_key' => env('ANTHROPIC_API_KEY'),
+        'model'   => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
+    ],
 ];
+
+    

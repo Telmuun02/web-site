@@ -5,6 +5,7 @@ use App\Http\Controllers\EmailVerificationController;
 use App\Http\Controllers\AuthorController;
 use App\Http\Controllers\BookController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\LoanController;
 use Illuminate\Support\Facades\Route;
 
@@ -28,6 +29,12 @@ Route::get('/categories', [CategoryController::class, 'index']);
 Route::get('/categories/{category}', [CategoryController::class, 'show']);
 Route::get('/authors', [AuthorController::class, 'index']);
 Route::get('/authors/{author}', [AuthorController::class, 'show']);
+
+// Чат туслах. POST — хэрэглэгчийн мессеж body-д ирнэ. auth дор байгаа нь
+// Anthropic API key-ээ зочдод үрэхгүй байх хамгаалалт.
+// throttle:20,1 — нэг хэрэглэгч минутад 20 мессеж; API нь төлбөртэй тул заавал.
+Route::post('/chat', [ChatController::class, 'send'])->middleware('throttle:10,1');
+Route::post('/chat/reset', [ChatController::class, 'reset'])->middleware('throttle:10,1');
 
 // АНХААР: Ном ХАРАХ нь нээлттэй БАЙХАА больсон.
 // Ном бүр компанид харьяалагддаг тул хэрэглэгч зөвхөн өөрийн компанийн
@@ -54,6 +61,8 @@ Route::middleware('auth:api')->group(function () {
     // компанийн номыг, админ бүгдийг харна (BookController-д шүүгдэнэ).
     Route::get('/books', [BookController::class, 'index']);
     Route::get('/books/{book}', [BookController::class, 'show']);
+
+    
 });
 
 // 'verified' middleware нь JSON бус хүсэлтийг энэ нэртэй route руу чиглүүлэхийг

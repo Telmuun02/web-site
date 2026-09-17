@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Route, Routes, useNavigate } from "react-router-dom";
 import Header from "./components/Header";
+import ChatWidget from "./components/ChatWidget";
 // pages/ — route бүрт харгалзах "хуудас". components/ — тэдгээрийн доторх
 // дахин ашиглагддаг жижиг хэсгүүд (Header, BookCard, Sidebar…).
 import Catalog from "./pages/Catalog";
@@ -67,6 +68,10 @@ function App() {
         {/* Дээрхийн аль нь ч таарахгүй бол */}
         <Route path="*" element={<NotFound />} />
       </Routes>
+
+      {/* Чат — Header шиг бүх хуудсанд харагдана, position: fixed тул
+          энд хаана байрлуулснаас үл хамааран баруун доод буланд гарна. */}
+      <ChatWidget />
     </div>
   );
 }

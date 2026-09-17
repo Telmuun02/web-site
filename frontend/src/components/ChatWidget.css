@@ -1,0 +1,177 @@
+/* ChatWidget.jsx-ийн загвар. position: fixed — хуудас гүйлгэсэн ч баруун
+   доод буланд байрандаа үлдэнэ. z-index нь бусад бүх зүйлийн дээр гарна. */
+
+.chat {
+  position: fixed;
+  right: 24px;
+  bottom: 24px;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+/* Дугуй товч — Header-ийн .logo-badge-тай ижил өнгөтэй */
+.chat__toggle {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: #fff;
+  box-shadow: 0 8px 24px -6px rgba(0, 0, 0, 0.35);
+  transition: background 0.15s, transform 0.15s;
+}
+.chat__toggle:hover {
+  background: var(--primary-hover);
+  transform: scale(1.05);
+}
+
+/* Чатны цонх */
+.chat__panel {
+  display: flex;
+  flex-direction: column;
+  width: 340px;
+  height: 460px;
+  /* Жижиг дэлгэц дээр цонхны гадна гарахгүй */
+  max-width: calc(100vw - 48px);
+  max-height: calc(100vh - 120px);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: 0 16px 40px -12px rgba(0, 0, 0, 0.3);
+  overflow: hidden; /* доторх дугуй булангуудыг тайруулна */
+  animation: chat-open 0.18s ease-out;
+}
+
+/* Нээгдэх үед доороос бага зэрэг өгсөж гарч ирнэ */
+@keyframes chat-open {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.chat__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--primary);
+  color: #fff;
+}
+
+.chat__title {
+  font-size: 15px;
+  font-weight: 600;
+}
+
+.chat__close {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-pill);
+  color: inherit;
+}
+.chat__close:hover {
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* Мессежийн жагсаалт — flex: 1 нь header ба form-ын дундах бүх зайг эзэлнэ,
+   багтахгүй бол өөрөө scroll болно. */
+.chat__messages {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px;
+  overflow-y: auto;
+  background: var(--bg);
+}
+
+/* Нэг мессежийн "бөмбөлөг" */
+.chat__msg {
+  max-width: 80%;
+  padding: 9px 13px;
+  border-radius: var(--radius);
+  font-size: 14px;
+  line-height: 1.45;
+  white-space: pre-wrap; /* мөр шилжилтийг хадгална */
+  word-break: break-word;
+}
+
+/* Хэрэглэгч — баруун талд, ногоон */
+.chat__msg--user {
+  align-self: flex-end;
+  background: var(--primary);
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+
+/* Бот — зүүн талд, цайвар */
+.chat__msg--bot {
+  align-self: flex-start;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-bottom-left-radius: 4px;
+}
+
+.chat__msg--typing {
+  color: var(--text-muted);
+  letter-spacing: 2px;
+}
+
+/* Бичих мөр */
+.chat__form {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+}
+
+.chat__form input {
+  flex: 1;
+  padding: 10px 14px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--bg);
+  font-size: 14px;
+  color: var(--text);
+}
+.chat__form input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.chat__send {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-pill);
+  background: var(--primary);
+  color: #fff;
+}
+.chat__send:hover {
+  background: var(--primary-hover);
+}
+.chat__send:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 480px) {
+  .chat {
+    right: 16px;
+    bottom: 16px;
+  }
+}
