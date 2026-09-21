@@ -66,7 +66,7 @@ class ChatController extends Controller
         }
 
         $data = $response->json();  
-        
+
         if ($data['stop_reason'] === 'tool_use') {    // ← ЭНД нэмнэ
             $toolUse = collect($data['content'])->firstWhere('type', 'tool_use');
 
@@ -117,7 +117,17 @@ class ChatController extends Controller
             'content' => $reply,
         ];
 
+        $sessionId = session()->getId();
+
         session(['chat_history' => $history]);
+
+        cookie(
+            'chat_session_id',  
+            $sessionId,
+            120,
+            '/',
+            
+        );
 
         return response()->json([
             'reply' => $reply,

@@ -1,51 +1,13 @@
-/**
- * ===== API клиент (mobile) =====
- *
- * frontend/src/api/client.js-ийн хувилбар. ХОЁР ЗҮЙЛ ӨӨР:
- *
- * 1. localStorage БАЙХГҮЙ.
- *    Веб дээр localStorage.getItem() нь утгыг ШУУД буцаадаг (синхрон).
- *    Утсан дээр түүний оронд expo-secure-store — энэ нь iOS Keychain /
- *    Android Keystore руу ханддаг тул бүх үйлдэл ASYNC (Promise буцаана).
- *    Яагаад тэр нь чухал вэ гэдгийг доорх memoryToken-оос уншина уу.
- *
- * 2. import.meta.env БАЙХГҮЙ.
- *    Vite-ийн import.meta.env.VITE_API_URL → Expo дээр process.env.EXPO_PUBLIC_*.
- *    Metro нь bundle хийхдээ энэ утгыг кодод шууд бичиж оруулна.
- *
- * ЭНЭ ФАЙЛ .js — тип нь JSDoc тайлбар дотор амьдарна. TypeScript нь JSDoc-ийг
- * жинхэнэ тип гэж уншдаг тул .tsx дэлгэцүүд эндээс `type User`-ыг хэвээр
- * импортолж чадна.
- */
 
-// axios нь `axios.create(...)` гэсэн default экспортоос гадна ЯГ ижил
-// функцуудыг НЭРТЭЙ ч экспортолдог. Нэртэйг нь ашигласан шалтгаан: bundler нь
-// ашиглаагүй хэсгийг таслаж чадна (tree-shaking) — аппын хэмжээ бага зэрэг
-// багасна. Гар утсан дээр bundle-ийн хэмжээ нь эхний ачаалах хугацаа.
 import { create as createAxios, isAxiosError } from 'axios';
 import * as SecureStore from 'expo-secure-store';
 
 const TOKEN_KEY = 'folio_token';
 const USER_KEY = 'folio_user';
 
-/**
- * Токеныг санах ойд БАС хадгална.
- *
- * Яагаад: доорх interceptor нь хүсэлт БҮРД ажилладаг. Хэрэв тэнд бүрд нь
- * SecureStore.getItemAsync() дуудвал хүсэлт бүр Keychain руу очиж, нэмэлт
- * саатал үүсгэнэ. Оронд нь аппыг асаах үед НЭГ УДАА уншаад энд барина —
- * ингэснээр interceptor нь веб дээрхтэй адил СИНХРОН хэвээр үлдэнэ.
- *
- * SecureStore нь "жинхэнэ" эх сурвалж (апп хаагдсан ч үлдэнэ), энэ хувьсагч нь
- * зөвхөн хурдан кэш. Хоёулаа ҮРГЭЛЖ хамт шинэчлэгдэнэ.
- *
- * @type {string | null}
- */
 let memoryToken = null;
 
 /**
- * Backend-ээс ирдэг хэрэглэгчийн хэлбэр (Header, Catalog, Cart ашиглана).
- *
  * @typedef {object} User
  * @property {number} id
  * @property {string} name
@@ -54,50 +16,25 @@ let memoryToken = null;
  * @property {{ id: number, name: string } | null} [company]
  */
 
-// ---------------------------------------------------------------- token -----
-
-/**
- * Апп асахад SecureStore-оос сэргээнэ. AuthProvider ганц удаа дуудна.
- *
- * @returns {Promise<string | null>}
- */
 export async function loadToken() {
   memoryToken = await SecureStore.getItemAsync(TOKEN_KEY);
   return memoryToken;
 }
 
-/**
- * Нэвтэрсний дараа: кэш + байнгын хадгалалт хоёуланг нь бичнэ.
- *
- * @param {string} token
- * @returns {Promise<void>}
- */
 export async function saveToken(token) {
   memoryToken = token;
   await SecureStore.setItemAsync(TOKEN_KEY, token);
 }
 
-/**
- * Гарах үед: хоёуланг нь цэвэрлэнэ.
- *
- * @returns {Promise<void>}
- */
 export async function clearToken() {
   memoryToken = null;
   await SecureStore.deleteItemAsync(TOKEN_KEY);
 }
 
-// ----------------------------------------------------------------- user -----
-// Хэрэглэгчийн мэдээлэл нууц биш ч, токентой хамт нэг газар байвал
-// "нэвтэрсэн эсэх" төлөв нь нэг л эх сурвалжтай болно.
-
-/** @returns {Promise<User | null>} */
 export async function loadStoredUser() {
   const raw = await SecureStore.getItemAsync(USER_KEY);
   if (!raw) return null;
 
-  // Хадгалсан JSON эвдэрсэн байвал (хувилбар солигдох гэх мэт) апп
-  // асахдаа унахын оронд "нэвтрээгүй" гэж үзнэ.
   try {
     return JSON.parse(raw);
   } catch {
@@ -106,15 +43,10 @@ export async function loadStoredUser() {
   }
 }
 
-/**
- * @param {User} user
- * @returns {Promise<void>}
- */
 export async function saveStoredUser(user) {
   await SecureStore.setItemAsync(USER_KEY, JSON.stringify(user));
 }
 
-/** @returns {Promise<void>} */
 export async function clearStoredUser() {
   await SecureStore.deleteItemAsync(USER_KEY);
 }
@@ -137,11 +69,6 @@ const client = createAxios({
     Accept: 'application/json',
     'Content-Type': 'application/json',
   },
-  /**
-   * Утасны сүлжээ компьютерийнхээс тогтворгүй. Хугацааны хязгааргүй бол
-   * буруу IP бичсэн үед дэлгэц "Loading…" дээр мөнхөд өлгөгдөнө.
-   * 15 секундын дараа алдаа өгвөл хэрэглэгч ядаж юу болсныг мэднэ.
-   */
   timeout: 15000,
 });
 
@@ -155,18 +82,6 @@ client.interceptors.request.use((config) => {
 
 export default client;
 
-/**
- * Алдааны мессежийг НЭГ газраас гаргана.
- *
- * Веб дээр `err.response?.data?.message ?? "..."` гэсэн мөр 6 файлд давтагдаж
- * байсан. Утсан дээр нэмэлт тохиолдол бий: сүлжээ огт байхгүй, эсвэл .env дэх
- * IP буруу — тэр үед err.response нь undefined байна (сервер хариу огт өгөөгүй).
- * Тэр тохиолдолд "Backend асаалттай юу?" гэхээс илүү тодорхой зөвлөгөө хэрэгтэй.
- *
- * @param {unknown} err
- * @param {string} [fallback]
- * @returns {string}
- */
 export function apiError(err, fallback = 'Алдаа гарлаа.') {
   if (isAxiosError(err)) {
     // Сервер хариулсан — Laravel-ийн мессежийг харуулна.

@@ -69,6 +69,10 @@ return [
         'api_key' => env('ANTHROPIC_API_KEY'),
         'model'   => env('ANTHROPIC_MODEL', 'claude-sonnet-4-6'),
     ],
+    'voyage' => [
+        'api_key' => env('VOYAGE_API_KEY'),
+        'model'   => env('VOYAGE_MODEL', 'voyage-embedding-1'),
+    ]
 ];
 
     
