@@ -107,7 +107,6 @@ class ChatController extends Controller
             
         }
 
-        // Хариу текстийг задлах
         $reply = collect($data['content'] ?? [])
             ->firstWhere('type', 'text')['text'] ?? '';
 
@@ -126,7 +125,6 @@ class ChatController extends Controller
             $sessionId,
             120,
             '/',
-            
         );
 
         return response()->json([

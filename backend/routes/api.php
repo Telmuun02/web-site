@@ -60,9 +60,9 @@ Route::middleware('auth:api')->group(function () {
     // Ном үзэх — нэвтэрсэн байх шаардлагатай. Хэрэглэгч зөвхөн өөрийн
     // компанийн номыг, админ бүгдийг харна (BookController-д шүүгдэнэ).
     Route::get('/books', [BookController::class, 'index']);
+    // /books/{book}-оос ӨМНӨ байх ёстой — эс бөгөөс "search"-ийг ном id гэж уншина.
+    Route::get('/books/search', [BookController::class, 'search']);
     Route::get('/books/{book}', [BookController::class, 'show']);
-
-    
 });
 
 // 'verified' middleware нь JSON бус хүсэлтийг энэ нэртэй route руу чиглүүлэхийг

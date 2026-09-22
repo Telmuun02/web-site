@@ -39,7 +39,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { borrowBook, normalizeBook, type Book } from '@/api/books';
+import { borrowBook, normalizeBook, searchBooks, type Book } from '@/api/books';
 import client, { apiError } from '@/api/client';
 import { BookCard } from '@/components/BookCard';
 import { FilterChips } from '@/components/FilterChips';
@@ -127,13 +127,32 @@ export default function CatalogScreen() {
       else if (mode === 'refresh') setRefreshing(true);
       else setLoading(true);
 
-      // Шүүлт/хайлт/хуудсыг query параметр болгож илгээнэ.
-      const params: Record<string, string | number> = { page: targetPage };
-      if (category !== 'all') params.category = category;
-      if (availability !== 'all') params.availability = availability;
-      if (debouncedQuery) params.search = debouncedQuery;
-
       try {
+        // ХАЙЛТЫН ҮГ БАЙВАЛ: embedding хайлт (/books/search).
+        // Backend cosine-оор эрэмбэлсэн 10 номыг буцаадаг — хуудаслалт байхгүй,
+        // ангилал/байдлын шүүлтийг ч мэдэхгүй. Тиймээс шүүлтийг энд, ирсэн
+        // 10 ном дээр л хийнэ (жижиг массив тул зардалгүй).
+        if (debouncedQuery) {
+          let next = await searchBooks(debouncedQuery);
+          if (id !== requestId.current) return; // хуучирсан хариу — хаяна
+
+          if (category !== 'all') next = next.filter((b) => b.category === category);
+          if (availability === 'available') next = next.filter((b) => b.available > 0);
+          else if (availability === 'checked-out') next = next.filter((b) => b.available === 0);
+
+          setBooks(next);
+          setPage(1);
+          setLastPage(1); // ёроолд хүрсэн ч дахин ачаалахгүй
+          setTotal(next.length);
+          setError('');
+          return;
+        }
+
+        // ХАЙЛТЫН ҮГ БАЙХГҮЙ: хуучин зам — шүүлт/хуудаслалт SERVER дээр.
+        const params: Record<string, string | number> = { page: targetPage };
+        if (category !== 'all') params.category = category;
+        if (availability !== 'all') params.availability = availability;
+
         const res = await client.get('/books', { params });
         if (id !== requestId.current) return; // хуучирсан хариу — хаяна
 

@@ -84,6 +84,21 @@ export function normalizeBookDetail(raw) {
 }
 
 /**
+ * Утгын хайлт — GET /books/search?q=...
+ *
+ * /books?search= нь SQL LIKE (яг үг таарах) бол энэ нь backend-ийн embedding
+ * (n-gram + cosine) хайлт: нөхцөл, бичгийн алдаанд тэсвэртэй, оноогоор
+ * эрэмбэлсэн. Хуудаслалт байхгүй — хамгийн ойрхон 10 номыг шууд буцаана.
+ *
+ * @param {string} q
+ * @returns {Promise<Book[]>}
+ */
+export async function searchBooks(q) {
+  const res = await client.get('/books/search', { params: { q } });
+  return res.data.data.map(normalizeBook);
+}
+
+/**
  * Зээлийн хугацаа: өнөөдрөөс хойш 14 хоног, "YYYY-MM-DD" хэлбэрээр.
  *
  * @returns {string}

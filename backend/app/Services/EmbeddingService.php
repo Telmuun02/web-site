@@ -2,6 +2,8 @@
 
 namespace App\Services;
 
+use App\Models\Book;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
 class EmbeddingService
@@ -54,15 +56,6 @@ class EmbeddingService
         return $vec;
     }
 
-    public function normalize(array $vec): array
-    {
-        $norm = sqrt(array_sum(array_map(fn($x) => $x * $x, $vec)));
-        if ($norm == 0) {
-            return $vec;
-        }
-        return array_map(fn($x) => $x / $norm, $vec);
-    }
-    
     public function cosine(array $a, array $b): float{
         $dot = 0.0;
         $normA = 0.0;
@@ -79,5 +72,24 @@ class EmbeddingService
         }
 
         return $dot / (sqrt($normA) * sqrt($normB));
+    }
+
+    public function search(string $query, int $limit = 5, ?int $companyId = null): Collection
+    {
+        $q = $this->embed_with_math($query);
+
+        return Book::with('authors', 'category')
+            ->whereNotNull('math_embedding')
+            // null (admin) бол шүүлт алгасна, утгатай бол тухайн компанийн ном л
+            ->when($companyId, fn ($b) => $b->where('company_id', $companyId))
+            ->get()
+            ->map(fn (Book $b) => [
+                'book'  => $b,
+                'score' => $this->cosine($q, $b->math_embedding),
+            ])
+            ->sortByDesc('score')
+            ->take($limit)
+            // sortByDesc анхны индексийг хадгалдаг — JSON-д объект болж гарахаас сэргийлнэ
+            ->values();
     }
 }

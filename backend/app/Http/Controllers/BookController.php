@@ -5,10 +5,12 @@ namespace App\Http\Controllers;
 use App\Http\Resources\BookDetailResource;
 use App\Http\Resources\BookResource;
 use App\Models\Book;
+use App\Services\EmbeddingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Номын CRUD үйлдлүүд.
@@ -155,5 +157,19 @@ class BookController extends Controller
         Cache::put('books.version', Cache::get('books.version', 1) + 1);
 
         return response()->json(['message' => 'Ном устгагдлаа.']);
+    }
+
+    public function search(Request $request, EmbeddingService $embeddings): JsonResponse
+    {
+        $request->validate([
+            'q' => 'required|string|max:100',
+        ]);
+
+        $user      = $request->user();
+        $companyId = $user->role === 'admin' ? null : $user->company_id;
+
+        $results = $embeddings->search($request->q, 10, $companyId);
+
+        return BookResource::collection($results->pluck('book'))->response();
     }
 }

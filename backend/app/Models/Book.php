@@ -16,7 +16,51 @@ class Book extends Model
         'company_id',
         'total_copies',
         'available_copies',
+        'math_embedding',
+        'ai_embedding',
     ];
+
+    /**
+     * API хариунд орохгүй талбарууд.
+     *
+     * Embedding нь мянга мянган тооны массив — mobile/React-д хэрэггүй, хариуг
+     * ном бүрд хэдэн арван KB-аар томруулна. $hidden нь зөвхөн toArray()/toJson()-д
+     * нөлөөлнө; $book->math_embedding гэж кодоор уншихад хэвээр ирнэ.
+     */
+    protected $hidden = [
+        'math_embedding',
+        'ai_embedding',
+    ];
+
+    /**
+     * JSON багана ↔ PHP массив автомат хөрвүүлэлт.
+     *
+     * Cast байхгүй бол embedding string болж ирнэ — cosine() алдаа
+     * гаргахгүй ч буруу тоо буцаана.
+     */
+    protected function casts(): array
+    {
+        return [
+            'math_embedding' => 'array',
+            'ai_embedding'   => 'array',
+        ];
+    }
+
+    /**
+     * Embedding хийх текст.
+     *
+     * Backfill, store(), update() — гурвуулаа энэ нэг функцийг дуудна.
+     * Өөр өөр газар өөр өөрөөр нийлүүлбэл вектор таарахгүй тул нэг эх сурвалж.
+     * Дуудахаас өмнө authors, category-г with()-ээр load хийсэн байх ёстой (N+1).
+     */
+    public function embeddingText(): string
+    {
+        return implode(' ', array_filter([
+            $this->title,
+            $this->authors->pluck('name')->implode(' '),
+            $this->category?->name,
+        ]));
+    }
 
     public function category()
     {

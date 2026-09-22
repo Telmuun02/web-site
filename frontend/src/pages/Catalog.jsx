@@ -57,19 +57,42 @@ function Catalog({ query, onQueryChange, user }) {
     let active = true;
     setLoading(true);
 
-    // Шүүлт/хайлт/хуудсыг query параметр болгож илгээнэ (?page=..&category=..&search=..).
-    const params = { page };
-    if (category !== "all") params.category = category;
-    if (availability !== "all") params.availability = availability;
-    if (query.trim()) params.search = query.trim();
+    const q = query.trim();
 
-    client
-      .get("/books", { params })
-      .then((res) => {
+    // ХАЙЛТЫН ҮГ БАЙВАЛ: embedding хайлт (/books/search) — LIKE биш, n-gram +
+    // cosine. Backend оноогоор эрэмбэлсэн 10 номыг буцаадаг, хуудаслалт ба
+    // ангилал/байдлын шүүлтийг мэдэхгүй. Тиймээс шүүлтийг ирсэн 10 ном дээр
+    // энд хийж, хуудас нэг л гэж тооцно.
+    //
+    // ХАЙЛТЫН ҮГ БАЙХГҮЙ: хуучин зам — шүүлт/хуудаслалт SERVER дээр (/books).
+    const request = q
+      ? client.get("/books/search", { params: { q } }).then((res) => {
+          let list = res.data.data.map(normalizeBook);
+          if (category !== "all") list = list.filter((b) => b.category === category);
+          if (availability === "available") list = list.filter((b) => b.available > 0);
+          else if (availability === "checked-out") list = list.filter((b) => b.available === 0);
+          return { books: list, lastPage: 1, total: list.length };
+        })
+      : client
+          .get("/books", {
+            params: {
+              page,
+              ...(category !== "all" && { category }),
+              ...(availability !== "all" && { availability }),
+            },
+          })
+          .then((res) => ({
+            books: res.data.data.map(normalizeBook), // тухайн хуудсын 8 ном
+            lastPage: res.data.meta.last_page, // нийт хэдэн хуудас
+            total: res.data.meta.total, // нийт хэдэн ном (шүүлтийн дараа)
+          }));
+
+    request
+      .then(({ books, lastPage, total }) => {
         if (!active) return;
-        setBooks(res.data.data.map(normalizeBook)); // тухайн хуудсын 8 ном
-        setTotalPages(res.data.meta.last_page); // нийт хэдэн хуудас
-        setTotalCount(res.data.meta.total); // нийт хэдэн ном (шүүлтийн дараа)
+        setBooks(books);
+        setTotalPages(lastPage);
+        setTotalCount(total);
         setError("");
       })
       .catch((err) => {
