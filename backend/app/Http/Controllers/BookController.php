@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Resources\BookDetailResource;
 use App\Http\Resources\BookResource;
 use App\Models\Book;
+use App\Services\BookSearchService;
 use App\Services\EmbeddingService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -95,9 +96,39 @@ class BookController extends Controller
             $book->authors()->attach($validated['author_ids']);
         }
 
+        // Зохиолч attach хийсний ДАРАА — embeddingText() зохиолчийн нэрийг ашигладаг
+        $this->embed($book);
+
         Cache::put('books.version', Cache::get('books.version', 1) + 1);
 
         return response()->json($book->load(['category', 'authors']), 201);
+    }
+
+    /**
+     * Номын embedding тооцож хадгалах.
+     *
+     * Math — заавал (үнэгүй, API-гүй тул алдаа гарахгүй).
+     * AI (Voyage) — оролдоод болохгүй бол орхино: API унасан, түлхүүр буруу
+     * гэх мэт шалтгаанаар ном нэмэх ажил бүхэлдээ унах ёсгүй.
+     */
+    private function embed(Book $book): void
+    {
+        $book->load('authors', 'category');
+        $text = $book->embeddingText();
+        $embeddings = app(EmbeddingService::class);
+
+        $data = ['math_embedding' => $embeddings->embed_with_math($text)];
+
+        try {
+            $data['ai_embedding'] = $embeddings->embed($text);
+        } catch (\Throwable $e) {
+            Log::warning('AI embedding амжилтгүй, зөвхөн math хадгаллаа', [
+                'book_id' => $book->id,
+                'error'   => $e->getMessage(),
+            ]);
+        }
+
+        $book->update($data);
     }
 
     /**
@@ -159,7 +190,7 @@ class BookController extends Controller
         return response()->json(['message' => 'Ном устгагдлаа.']);
     }
 
-    public function search(Request $request, EmbeddingService $embeddings): JsonResponse
+    public function search(Request $request, BookSearchService $bookSearch): JsonResponse
     {
         $request->validate([
             'q' => 'required|string|max:100',
@@ -168,7 +199,7 @@ class BookController extends Controller
         $user      = $request->user();
         $companyId = $user->role === 'admin' ? null : $user->company_id;
 
-        $results = $embeddings->search($request->q, 10, $companyId);
+        $results = $bookSearch->search($request->q, 10, $companyId);
 
         return BookResource::collection($results->pluck('book'))->response();
     }

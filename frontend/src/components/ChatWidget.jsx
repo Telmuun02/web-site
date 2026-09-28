@@ -12,11 +12,34 @@ import "./ChatWidget.css";
 // POST /api/chat { message } → { reply }. Backend-тэй харьцах ганц цэг —
 // API өөрчлөгдвөл зөвхөн энд засна. client нь baseURL + Bearer token-ыг
 // өөрөө наана (api/client.js).
+// Зочны чатны id — нэг удаа үүсээд localStorage-д хадгалагдана, refresh хийсэн
+// ч хэвээр. Нэвтэрсэн хэрэглэгчийг backend token-оор нь таних тул энэ нь
+// зөвхөн зочинд хэрэгтэй, гэхдээ үргэлж илгээхэд гэм байхгүй.
+function getChatId() {
+  let id = localStorage.getItem("chat_id");
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem("chat_id", id);
+  }
+  return id;
+}
+
 async function sendMessage(text) {
-  const { data } = await client.post("/chat", { message: text });
+  const { data } = await client.post("/chat", { message: text, chat_id: getChatId() });
   // reply — жинхэнэ хариу. message — controller-ийн туршилтын хувилбар
   // ('Chat API is working.'); гинж ажиллаж байгааг шалгахад хэрэгтэй.
   return data.reply ?? data.message ?? JSON.stringify(data);
+}
+
+// GET /api/chat/history → { messages: [{ role: "user" | "assistant", content }] }.
+// Backend-ийн "assistant"-ийг widget-ийн "bot" болгож хөрвүүлнэ.
+async function loadHistory() {
+  const { data } = await client.get("/chat/history", { params: { chat_id: getChatId() } });
+  return (data.messages ?? []).map((m, i) => ({
+    id: `h${i}`,
+    role: m.role === "assistant" ? "bot" : "user",
+    text: m.content,
+  }));
 }
 
 function ChatWidget() {
@@ -30,6 +53,16 @@ function ChatWidget() {
   const [input, setInput] = useState("");
   // Хариу хүлээж байх үед давхар илгээхээс сэргийлнэ
   const [sending, setSending] = useState(false);
+
+  // Анх ачаалахад (refresh-ийн дараа ч) өмнөх чатыг backend-ээс татна.
+  // Мэндчилгээг эхэнд нь үлдээгээд түүхийг ард нь залгана.
+  useEffect(() => {
+    loadHistory()
+      .then((history) => {
+        if (history.length) setMessages((prev) => [prev[0], ...history]);
+      })
+      .catch(() => {}); // Түүх ачаалагдахгүй бол хоосон чатаар үргэлжилнэ
+  }, []);
 
   // Шинэ мессеж ирэх бүрт жагсаалтын хамгийн доош гүйлгэнэ.
   // Хоосон <div>-ийг жагсаалтын төгсгөлд тавиад түүн рүү scrollIntoView хийнэ.

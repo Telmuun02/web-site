@@ -2,8 +2,6 @@
 
 namespace App\Services;
 
-use App\Models\Book;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\Http;
 
 class EmbeddingService
@@ -11,13 +9,14 @@ class EmbeddingService
     // 1. Ном бүрийг embedd хийж өгөгдлийн санд хадгалах 
     // 2. chatBot ийн бичсэн үгийг embedded болгож хувирган хайлт хийж үзэх.
 
-    public function embed(string $text){
+    // $inputType: хадгалах номд 'document', хайлтын үгэнд 'query' (Voyage зөвхөн эдгээрийг хүлээн авна)
+    public function embed(string $text, string $inputType = 'document'){
         $response = Http::withHeaders([
             'Authorization' => 'Bearer ' . config('services.voyage.api_key'),
-        ])->post('https://api.voyageai.com/v1/embeddings', [
+        ])->timeout(5)->post('https://api.voyageai.com/v1/embeddings', [
             'model' => config('services.voyage.model'),
             'input' => $text,
-            'input_type' => 'text',
+            'input_type' => $inputType,
         ]);
 
         if ($response->failed()) {
@@ -47,49 +46,45 @@ class EmbeddingService
 
         $counts = array_count_values($grams);
 
-        $vec = array_fill(0, self::DIM, 0.0);
+        // Sparse вектор: 4096 тэгийн оронд зөвхөн тэг биш утга [индекс => тоо]
+        $vec = [];
         foreach ($counts as $gram => $n) {
             $idx = crc32($gram) % self::DIM;
-            $vec[$idx] += $n;
+            $vec[$idx] = ($vec[$idx] ?? 0) + $n;
         }
 
         return $vec;
     }
 
     public function cosine(array $a, array $b): float{
-        $dot = 0.0;
-        $normA = 0.0;
-        $normB = 0.0;
-
-        for ($i = 0; $i < count($a); $i++) {
-            $dot += $a[$i] * $b[$i];
-            $normA += pow($a[$i], 2);
-            $normB += pow($b[$i], 2);
+        if (count($a) > count($b)) {
+            [$a, $b] = [$b, $a];
         }
+
+        $dot = 0.0;
+        foreach ($a as $i => $x) {
+            if (isset($b[$i])) {
+                $dot += $x * $b[$i];
+            }
+        }
+
+        $normA = $this->norm($a);
+        $normB = $this->norm($b);
 
         if ($normA == 0 || $normB == 0) {
             return 0;
         }
 
-        return $dot / (sqrt($normA) * sqrt($normB));
+        return $dot / ($normA * $normB);
     }
 
-    public function search(string $query, int $limit = 5, ?int $companyId = null): Collection
+    private function norm(array $v): float
     {
-        $q = $this->embed_with_math($query);
+        $sum = 0.0;
+        foreach ($v as $x) {
+            $sum += $x * $x;
+        }
 
-        return Book::with('authors', 'category')
-            ->whereNotNull('math_embedding')
-            // null (admin) бол шүүлт алгасна, утгатай бол тухайн компанийн ном л
-            ->when($companyId, fn ($b) => $b->where('company_id', $companyId))
-            ->get()
-            ->map(fn (Book $b) => [
-                'book'  => $b,
-                'score' => $this->cosine($q, $b->math_embedding),
-            ])
-            ->sortByDesc('score')
-            ->take($limit)
-            // sortByDesc анхны индексийг хадгалдаг — JSON-д объект болж гарахаас сэргийлнэ
-            ->values();
+        return sqrt($sum);
     }
 }
