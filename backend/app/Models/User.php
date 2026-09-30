@@ -11,8 +11,8 @@ use Illuminate\Foundation\Auth\User as UserInheritance;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
 
-#[Fillable(['name', 'email', 'password', 'role', 'company_id'])]
-#[Hidden(['password', 'remember_token'])]
+#[Fillable(['name', 'email', 'google_id', 'password', 'role', 'company_id'])]
+#[Hidden(['password', 'remember_token', 'google_id'])]
 // MustVerifyEmail — hasVerifiedEmail() / markEmailAsVerified() method() uudiig ugnu,.
 class User extends UserInheritance implements MustVerifyEmail
 {

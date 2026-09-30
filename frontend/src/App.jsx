@@ -63,7 +63,7 @@ function App() {
         <Route path="/books/:id" element={<BookDetail user={user} />} />
         <Route path="/cart" element={<Cart user={user} />} />
         <Route path="/signin" element={<SignIn onAuth={handleAuth} />} />
-        <Route path="/register" element={<Register />} />
+        <Route path="/register" element={<Register onAuth={handleAuth} />} />
         <Route path="/email-verified" element={<EmailVerified />} />
         {/* Дээрхийн аль нь ч таарахгүй бол */}
         <Route path="*" element={<NotFound />} />

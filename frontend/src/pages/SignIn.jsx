@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import VerifyNotice from "../components/VerifyNotice";
+import GoogleButton from "../components/GoogleButton";
 import client from "../api/client";
 
 // Нэвтрэх хуудас (/signin). handleSubmit нь backend-ийн /login endpoint-ыг дуудна.
@@ -88,6 +89,9 @@ function SignIn({ onAuth }) {
         <button type="submit" className="btn-primary btn-block" disabled={loading}>
           {loading ? "Signing in…" : "Sign in"}
         </button>
+
+        <div className="auth-divider">or</div>
+        <GoogleButton onAuth={onAuth} onError={setError} />
 
         {/* Seed-ээр үүсгэсэн туршилтын бүртгэлүүд */}
         <div className="auth-demo">

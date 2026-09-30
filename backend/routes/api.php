@@ -7,6 +7,7 @@ use App\Http\Controllers\BookController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\ChatController;
 use App\Http\Controllers\LoanController;
+use App\Http\Controllers\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
 /*
@@ -16,6 +17,9 @@ use Illuminate\Support\Facades\Route;
 */
 Route::post('/register', [AuthController::class, 'register']);
 Route::post('/login', [AuthController::class, 'login']);
+
+// Google-ээр нэвтрэх — FE-ээс ирсэн Google access_token-ыг Passport token-оор солино.
+Route::post('/auth/google', [SocialAuthController::class, 'google'])->middleware('throttle:10,1');
 
 // Баталгаажуулах холбоосыг дахин илгээх — НЭЭЛТТЭЙ байх ёстой.
 // Хатуу горимд баталгаажаагүй хэрэглэгчид token байхгүй тул auth дор тавьж болохгүй.

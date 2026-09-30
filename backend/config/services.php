@@ -56,8 +56,23 @@ return [
         'client_id' => env('LINKEDIN_CLIENT_ID'),
         'client_secret' => env('LINKEDIN_CLIENT_SECRET'),
         'redirect' => env('LINKEDIN_REDIRECT_URI'),
-    ],    
-    
+    ],
+
+    /*
+     | Google — "Google-ээр нэвтрэх".
+     |
+     | FE нь Google-ээс access_token авч /api/auth/google руу илгээнэ.
+     | client_secret хэрэггүй — client_id нь токен МАНАЙ апп-д олгогдсон
+     | эсэхийг (aud) шалгахад л хэрэгтэй.
+     | default_company_id — шинэ Google хэрэглэгчийг оноох компани.
+     */
+    'google' => [
+        'client_id'          => env('GOOGLE_CLIENT_ID'),
+        'client_secret'      => env('GOOGLE_CLIENT_SECRET'),
+        'redirect'           => env('GOOGLE_REDIRECT_URI'),
+        'default_company_id' => env('GOOGLE_DEFAULT_COMPANY_ID'),
+    ],
+
     /*
      | Anthropic (Claude) — чат туслах.
      |

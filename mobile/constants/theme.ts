@@ -14,7 +14,7 @@ import { Platform, type ViewStyle } from 'react-native';
 
 export const Colors = {
   // Суурь өнгө
-  bg: '#f4f2ec', // цайвар шаргал дэвсгэр
+  bg: '#fff', // TEMP: шалгалтад түр цагаан болгов. Буцаах: '#f4f2ec' (цайвар шаргал дэвсгэр)
   surface: '#faf9f5', // карт зэрэг цайвар гадаргуу
   text: '#2c2b27', // үндсэн бараан текст
   textMuted: '#8b897e', // бүдэг/тайлбар текст

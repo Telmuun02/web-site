@@ -9,6 +9,10 @@ use Illuminate\Support\Collection;
 // аль номыг, аль компанид, хэдийг буцаах гэх мэт номын логик энд.
 class BookSearchService
 {
+    // Үүнээс доош оноотой ном хайлтад гарахгүй. Туршилтаар хамааралтай ном
+    // ~0.34+, хамааралгүй ном (санамсаргүй n-gram давхцал) ~0.13-аас доош.
+    private const MIN_SCORE = 0.2;
+
     public function __construct(private EmbeddingService $embeddings)
     {
     }
@@ -26,6 +30,8 @@ class BookSearchService
                 'book'  => $b,
                 'score' => $this->embeddings->cosine($q, $b->math_embedding),
             ])
+            // Босгогүй бол оноо 0 байсан ч top N гарч, хамааралгүй ном харагдана
+            ->filter(fn ($r) => $r['score'] >= self::MIN_SCORE)
             ->sortByDesc('score')
             ->take($limit)
             // sortByDesc анхны индексийг хадгалдаг — JSON-д объект болж гарахаас сэргийлнэ

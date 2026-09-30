@@ -2,6 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import AuthLayout from "../components/AuthLayout";
 import VerifyNotice from "../components/VerifyNotice";
+import GoogleButton from "../components/GoogleButton";
 import client from "../api/client";
 
 // Бүртгүүлэх хуудас. handleSubmit нь backend-ийн /register endpoint-ыг дуудна.
@@ -10,7 +11,9 @@ import client from "../api/client";
 // ХАТУУ ГОРИМ: backend бүртгэлийн хариунд token БУЦААХГҮЙ. Тиймээс энд шууд
 // нэвтрүүлэхгүй — "мэйлээ шалгана уу" дэлгэц харуулж, хэрэглэгч и-мэйлээ
 // баталгаажуулсны дараа /signin-ээр нэвтэрнэ.
-function Register() {
+// Харин Google-ээр бүртгүүлбэл Google и-мэйлийг баталгаажуулсан тул
+// backend шууд token өгнө → onAuth(data)-аар нэвтрүүлнэ.
+function Register({ onAuth }) {
   const [form, setForm] = useState({
     name: "",
     email: "",
@@ -111,6 +114,9 @@ function Register() {
         <button type="submit" className="btn-primary btn-block" disabled={loading}>
           {loading ? "Creating…" : "Create account"}
         </button>
+
+        <div className="auth-divider">or</div>
+        <GoogleButton onAuth={onAuth} onError={setError} />
       </form>
     </AuthLayout>
   );
