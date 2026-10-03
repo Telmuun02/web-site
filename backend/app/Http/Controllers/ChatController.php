@@ -7,6 +7,8 @@ use Illuminate\Support\Facades\Http;
 use Illuminate\Http\Request;
 use App\Services\ToolDefinitions;
 use App\Services\ChatTools;
+use App\Services\DepartmentService;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Чат үйлдлүүд.
@@ -21,7 +23,7 @@ class ChatController extends Controller
         ]);
     }
 
-    public function send(Request $request)
+    public function send(Request $request, DepartmentService $departments)
     {
         $systemprompt = <<<PROMPT
         Та Folio номын сангийн туслах. Монгол хэлээр, зөв бичгийн дүрмийн дагуу, энгийн бөгөөд богино өгүүлбэрээр, эелдэг хариулна.
@@ -51,6 +53,13 @@ class ChatController extends Controller
         ]);
 
         $key = $this->chatKey($request);
+
+        // Мессеж аль хэлтэст хамаарахыг AI-гүйгээр тодорхойлоод Claude-д мэдэгдэнэ
+        $department = $this->detectDepartment($departments, $request->input('message'));
+
+        if ($department['name']) {
+            $systemprompt .= "\n\nХэрэглэгчийн энэ мессеж \"{$department['name']}\" хэлтэст хамаарах магадлалтай (түлхүүр үгээр тодорхойлсон).";
+        }
 
         // $history — зөвхөн текст мессеж, Cache-д хадгалагдана.
         // $messages — Claude руу илгээх бүтэн жагсаалт, tool блокууд энд л нэмэгдэнэ.
@@ -153,9 +162,27 @@ class ChatController extends Controller
             Cache::put($key, array_slice($history, -10), now()->addHours(2));
         }
 
+        // TODO(туршилт): хэлтсийг чатад харуулж байна — тест дууссаны дараа prefix-ийг хасна.
+        // Cache-ийн түүхэнд ороогүй тул Claude-ын контекстэд нөлөөлөхгүй.
+        $label = "[Хэлтэс: " . ($department['name'] ?? 'тодорхойгүй') . " · {$department['source']}]\n";
+
         return response()->json([
-            'reply' => $reply,
+            'reply' => $label . $reply,
+            'department' => $department,
         ]);
+    }
+
+    // Scout (Meilisearch) эхэлж, сервер ажиллахгүй бол PHP хувилбар руу буцна —
+    // Meilisearch унтарсан үед чатбот унахгүй.
+    private function detectDepartment(DepartmentService $departments, string $message): array
+    {
+        try {
+            return ['name' => $departments->detectWithScout($message)['department'], 'source' => 'scout'];
+        } catch (\Throwable $e) {
+            Log::warning('Scout хэлтэс тодорхойлолт амжилтгүй, PHP хувилбар ашиглав', ['error' => $e->getMessage()]);
+
+            return ['name' => $departments->detect($message)['department'], 'source' => 'php'];
+        }
     }
 
     // Refresh хийсний дараа widget өмнөх мессежүүдээ харуулахад ашиглана.
