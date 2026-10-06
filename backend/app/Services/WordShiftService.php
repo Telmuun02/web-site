@@ -4,18 +4,14 @@ namespace App\Services;
 
 use App\Models\Department;
 
-// Хэрэглэгчийн буруу/латинаар бичсэн үгийг толь бичгийн жинхэнэ үг рүү хөрвүүлнэ.
-// Санаа: үг бүрийг "гийгүүлэгчийн араг яс" болгоно (кирилл/латин нэгтгээд эгшгийг хасна),
-// тэгвэл "цалин", "tsalin", "tslin", "tsalen" бүгд "cln" болж "цалин" гэдэгтэй таарна.
+// Тухайн текстийг нь алдаатай байдлаас нь хувиргах 
+// cln, tsalin, tsln = цлн гэх мэтээр хувиргаж тодорхойлох
 class WordShiftService
 {
-    // Түлхүүр үгс (departments.keywords-оос). Язгуур хэлбэрээр нь бичигдсэн байна —
-    // нөхцөл (-гаа, -лоо, -сон) зөвхөн араас гийгүүлэгч нэмдэг тул prefix таарцаар баригдана.
     private array $keywords;
-
-    // Кирилл болон латин чатын хувилбаруудыг нэг тэмдэгт болгоно.
-    // strtr урт түлхүүрийг (ts, ch) эхэлж таарна, солигдсон хэсгийг дахин шалгадаггүй.
-    private const MAP = [
+ 
+    // ElasticDepartmentService-ийн analyzer ч энэ дүрмийг ашиглана
+    public const MAP = [
         'ц' => 'c', 'ч' => 'q', 'ш' => 'w', 'щ' => 'w', 'х' => 'h', 'ж' => 'j',
         'з' => 'z', 'с' => 's', 'б' => 'b', 'в' => 'v', 'г' => 'g', 'д' => 'd',
         'к' => 'k', 'л' => 'l', 'м' => 'm', 'н' => 'n', 'п' => 'p', 'р' => 'r',
@@ -78,38 +74,7 @@ class WordShiftService
         return $found;
     }
 
-    // Meilisearch-д илгээх нэр томьёо: үг бүрийн skeleton ба түүний prefix-үүд.
-    // "цалингаа dutuu" → ["clng", "cln", "dt"]
-    // Индексийн "cln" нь хэрэглэгчийн "clng"-ийн эхлэл байх ёстой — Meilisearch үүнийг
-    // өөрөө хийдэггүй тул prefix-ийг энд үүсгээд яг таарцаар (filter) шалгана.
-    // match()-ийн дүрмийг давтана: skeleton өөрөө + 3+ үсэгтэй prefix-үүд (2 үсэгтэй нь зөвхөн яг таарц).
-    public function searchTerms(string $text): array
-    {
-        return array_values(array_unique(array_merge([], ...array_values($this->searchTermsByWord($text)))));
-    }
-
-    // Үг бүрийн нэр томьёо, уртаас богино руу: ["цалингаа" => ["clng", "cln"], ...]
-    // DepartmentService үг бүрт хамгийн урт таарцыг сонгоход ашиглана (shift()-тэй ижил).
-    public function searchTermsByWord(string $text): array
-    {
-        $result = [];
-        foreach ($this->words($text) as $word) {
-            $token = $this->skeleton($word);
-            if (strlen($token) < 2) {
-                continue;
-            }
-
-            $terms = [$token];
-            for ($len = strlen($token) - 1; $len >= 3; $len--) {
-                $terms[] = substr($token, 0, $len);
-            }
-            $result[$word] = $terms;
-        }
-
-        return $result;
-    }
-
-    private function words(string $text): array
+    public function words(string $text): array
     {
         return preg_split('/[^\p{L}\p{N}]+/u', $text, -1, PREG_SPLIT_NO_EMPTY);
     }

@@ -87,7 +87,18 @@ return [
     'voyage' => [
         'api_key' => env('VOYAGE_API_KEY'),
         'model'   => env('VOYAGE_MODEL', 'voyage-embedding-1'),
-    ]
+    ],
+    'elastic' => ['host' => env('ELASTIC_HOST')],
+
+    /*
+     | Chimege — монгол хэлний speech-to-text (console.chimege.com).
+     |
+     | token нь зөвхөн server талд — frontend руу хэзээ ч явахгүй.
+     */
+    'chimege' => [
+        'url'   => env('CHIMEGE_URL', 'https://api.chimege.com/v1.2'),
+        'token' => env('CHIMEGE_TOKEN'),
+    ],
 ];
 
     

@@ -95,22 +95,4 @@ class WordShiftServiceTest extends TestCase
         );
         $this->assertSame([], $this->service->shiftText('сайн байна уу'));
     }
-
-    // Meilisearch-д илгээх нэр томьёо: skeleton + түүний 3+ үсэгтэй prefix-үүд
-    public function test_search_terms_include_prefixes(): void
-    {
-        // цалингаа → clng → [clng, cln]; дутуу → dt; байна → bn
-        $this->assertSame(['clng', 'cln', 'dt', 'bn'], $this->service->searchTerms('цалингаа dutuu bn'));
-    }
-
-    // 2 үсэгтэй prefix үүсгэхгүй ("чөлөөгөө" → qlg, ql биш) — богино skeleton зөвхөн яг таарцаар
-    public function test_search_terms_short_skeleton(): void
-    {
-        $this->assertSame(['qlg'], $this->service->searchTerms('чөлөөгөө'));
-    }
-
-    public function test_search_terms_empty_for_no_consonants(): void
-    {
-        $this->assertSame([], $this->service->searchTerms('уу ээ а'));
-    }
 }

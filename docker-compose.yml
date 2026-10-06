@@ -217,20 +217,6 @@ services:
       - "1025:1025" # SMTP
       - "8025:8025" # Веб UI — баталгаажуулах мэйлийг эндээс уншина
 
-  # ------------------------------------------------------ meilisearch -----
-  # Scout-ын хайлтын сервер (хэлтэс тодорхойлох) → http://localhost:7700
-  # Индекс volume-д хадгалагдана; хоосон бол: php artisan scout:import "App\Models\Department"
-  meilisearch:
-    image: getmeili/meilisearch:v1.16
-    restart: unless-stopped
-    environment:
-      MEILI_MASTER_KEY: masterKey
-      MEILI_ENV: development
-    ports:
-      - "7700:7700"
-    volumes:
-      - meili-data:/meili_data
-
   # ----------------------------------------------------- backend-prod -----
   # PROD image-ийг локал дээр турших. Энгийн `up` үед АСАХГҮЙ (profile).
   #
@@ -299,7 +285,6 @@ services:
         condition: service_healthy
 
 volumes:
-  meili-data:
   db-data:
   backend-vendor:
   frontend-node-modules:

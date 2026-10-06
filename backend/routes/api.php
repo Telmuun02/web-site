@@ -38,6 +38,7 @@ Route::get('/authors/{author}', [AuthorController::class, 'show']);
 // Anthropic API key-ээ зочдод үрэхгүй байх хамгаалалт.
 // throttle:20,1 — нэг хэрэглэгч минутад 20 мессеж; API нь төлбөртэй тул заавал.
 Route::post('/chat', [ChatController::class, 'send'])->middleware('throttle:10,1');
+Route::post('/chat/transcribe', [ChatController::class, 'transcribe'])->middleware('throttle:10,1');
 Route::post('/chat/reset', [ChatController::class, 'reset'])->middleware('throttle:10,1');
 Route::get('/chat/history', [ChatController::class, 'history'])->middleware('throttle:30,1');
 

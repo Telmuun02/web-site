@@ -169,6 +169,50 @@
   cursor: not-allowed;
 }
 
+/* Микрофон — илгээх товчтой ижил хэмжээтэй, гэхдээ хүрээтэй (хоёрдогч товч) */
+.chat__mic {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--primary);
+  transition: background 0.15s, color 0.15s;
+}
+.chat__mic:hover {
+  background: var(--bg);
+}
+.chat__mic:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* Бичиж байх үед — улаан, анивчих цагираг */
+.chat__mic--recording {
+  border-color: #d32f2f;
+  background: #d32f2f;
+  color: #fff;
+  animation: chat-recording 1.4s ease-out infinite;
+}
+.chat__mic--recording:hover {
+  background: #b71c1c;
+}
+
+@keyframes chat-recording {
+  0% {
+    box-shadow: 0 0 0 0 rgba(211, 47, 47, 0.5);
+  }
+  100% {
+    box-shadow: 0 0 0 10px rgba(211, 47, 47, 0);
+  }
+}
+
+/* "Бичиж байна… 0:05" — бичлэгийн үед input идэвхгүй, placeholder нь таймер */
+.chat__form input:disabled::placeholder {
+  color: #d32f2f;
+}
+
 @media (max-width: 480px) {
   .chat {
     right: 16px;

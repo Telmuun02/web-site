@@ -58,13 +58,9 @@ class DepartmentSeeder extends Seeder
             ],
         ];
 
-        // Meilisearch унтарсан үед seed унахгүйн тулд индекст илгээхгүй.
-        // Индексийг дараа нь: php artisan scout:import "App\Models\Department"
-        Department::withoutSyncingToSearch(function () use ($departments) {
-            foreach ($departments as $name => $keywords) {
-                Department::updateOrCreate(['name' => $name], ['keywords' => $keywords]);
-            }
-        });
+        foreach ($departments as $name => $keywords) {
+            Department::updateOrCreate(['name' => $name], ['keywords' => $keywords]);
+        }
 
         // DatabaseSeeder WithoutModelEvents ашигладаг тул saved event ажиллахгүй
         Cache::forget(Department::CACHE_KEY);

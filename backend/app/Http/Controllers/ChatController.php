@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Services\ToolDefinitions;
 use App\Services\ChatTools;
 use App\Services\DepartmentService;
+use App\Services\ChimegeService;
 use Illuminate\Support\Facades\Log;
 
 /**
@@ -24,6 +25,42 @@ class ChatController extends Controller
     }
 
     public function send(Request $request, DepartmentService $departments)
+    {
+        $request->validate([
+            'message' => 'required|string|max:100',
+            'chat_id' => 'nullable|uuid',
+        ]);
+
+        return response()->json($this->reply($request, $departments, $request->input('message')));
+    }
+
+    // Дуу → текст: WAV (16 kHz, mono) → Chimege → { text }.
+    // Чат руу илгээхгүй — frontend текстийг input-д тавьж, хэрэглэгч шалгаад send()-ээр илгээнэ.
+    public function transcribe(Request $request, ChimegeService $chimege)
+    {
+        $request->validate([
+            // 60 сек × 16000 × 2 byte ≈ 1.9 MB
+            'audio'   => 'required|file|mimes:wav|max:2048',
+            'chat_id' => 'nullable|uuid',
+        ]);
+
+        try {
+            $text = $chimege->transcribe($request->file('audio')->get());
+        } catch (\Throwable $e) {
+            Log::warning('Chimege танилт амжилтгүй', ['error' => $e->getMessage()]);
+
+            return response()->json(['message' => 'Дуу таних үйлчилгээ хариу өгсөнгүй. Дахин оролдоно уу.'], 502);
+        }
+
+        if ($text === '') {
+            return response()->json(['message' => 'Яриа танигдсангүй. Дахин, тод хэлээд үзээрэй.'], 422);
+        }
+
+        return response()->json(['text' => $text]);
+    }
+
+    // Мессежид хариулах: хэлтэс → Claude (tool-уудтай) → түүх хадгалах.
+    private function reply(Request $request, DepartmentService $departments, string $message): array
     {
         $systemprompt = <<<PROMPT
         Та Folio номын сангийн туслах. Монгол хэлээр, зөв бичгийн дүрмийн дагуу, энгийн бөгөөд богино өгүүлбэрээр, эелдэг хариулна.
@@ -47,15 +84,10 @@ class ChatController extends Controller
         Хариулт: Уучлаарай, би зөвхөн номын сангийн талаар туслах боломжтой.
         PROMPT;
 
-        $request->validate([
-            'message' => 'required|string|max:100',
-            'chat_id' => 'nullable|uuid',
-        ]);
-
         $key = $this->chatKey($request);
 
         // Мессеж аль хэлтэст хамаарахыг AI-гүйгээр тодорхойлоод Claude-д мэдэгдэнэ
-        $department = $this->detectDepartment($departments, $request->input('message'));
+        $department = $this->detectDepartment($departments, $message);
 
         if ($department['name']) {
             $systemprompt .= "\n\nХэрэглэгчийн энэ мессеж \"{$department['name']}\" хэлтэст хамаарах магадлалтай (түлхүүр үгээр тодорхойлсон).";
@@ -68,7 +100,7 @@ class ChatController extends Controller
         // Хэрэглэгчийн шинэ мессежийг түүхэнд нэмэх
         $history[] = [
             'role' => 'user',
-            'content' => $request->input('message'),
+            'content' => $message,
         ];
 
         $messages = $history;
@@ -87,11 +119,12 @@ class ChatController extends Controller
         ]);
 
         // Хүсэлт амжилтгүй бол алдаа буцаах
+        // reply() массив буцаадаг тул алдааны хариуг abort()-оор шууд илгээнэ
         if ($response->failed()) {
-            return response()->json([
+            abort(response()->json([
                 'error' => 'Claude API-тай холбогдоход алдаа гарлаа.',
                 'details' => $response->json(),
-            ], $response->status());
+            ], $response->status()));
         }
 
         $data = $response->json();  
@@ -166,23 +199,16 @@ class ChatController extends Controller
         // Cache-ийн түүхэнд ороогүй тул Claude-ын контекстэд нөлөөлөхгүй.
         $label = "[Хэлтэс: " . ($department['name'] ?? 'тодорхойгүй') . " · {$department['source']}]\n";
 
-        return response()->json([
+        return [
             'reply' => $label . $reply,
             'department' => $department,
-        ]);
+        ];
     }
 
-    // Scout (Meilisearch) эхэлж, сервер ажиллахгүй бол PHP хувилбар руу буцна —
-    // Meilisearch унтарсан үед чатбот унахгүй.
+    // source нь чатын label-д харагдана — дараа Elasticsearch хувилбар нэмэхэд ялгахад хэрэгтэй
     private function detectDepartment(DepartmentService $departments, string $message): array
     {
-        try {
-            return ['name' => $departments->detectWithScout($message)['department'], 'source' => 'scout'];
-        } catch (\Throwable $e) {
-            Log::warning('Scout хэлтэс тодорхойлолт амжилтгүй, PHP хувилбар ашиглав', ['error' => $e->getMessage()]);
-
-            return ['name' => $departments->detect($message)['department'], 'source' => 'php'];
-        }
+        return ['name' => $departments->detect($message)['department'], 'source' => 'php'];
     }
 
     // Refresh хийсний дараа widget өмнөх мессежүүдээ харуулахад ашиглана.
